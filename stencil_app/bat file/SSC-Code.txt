@@ -1,0 +1,80 @@
+now .bat file to start and stop
+ChatGPT said
+
+Perfect 👍 since you’re on Windows, you can use a .bat script to start and stop your compiled Flask .exe.
+
+✅ 1. Start script (start_stencil.bat)
+@echo off
+REM === Start Stencil_Master.exe ===
+set EXE_PATH=%~dp0distStencil_Master.exe
+
+echo Starting Stencil Manager...
+start  %EXE_PATH%
+echo ✅ Stencil Manager started.
+pause
+
+
+%~dp0 means “this batch file’s folder”.
+
+distStencil_Master.exe is the default PyInstaller output location.
+
+✅ 2. Stop script (stop_stencil.bat)
+@echo off
+REM === Stop Stencil_Master.exe process ===
+echo Stopping Stencil Manager...
+
+taskkill F IM Stencil_Master.exe nul 2&1
+
+if %ERRORLEVEL%==0 (
+    echo ✅ Stencil Manager stopped.
+) else (
+    echo ⚠️ Stencil Manager was not running.
+)
+
+pause
+
+
+taskkill F IM forcibly stops the process by name.
+
+✅ 3. Combined script (startstop menu)
+
+If you prefer one file
+
+@echo off
+echo ============================
+echo   Stencil Manager Control
+echo ============================
+echo 1. Start
+echo 2. Stop
+echo 3. Restart
+echo 4. Exit
+echo ============================
+set p choice=Enter your choice 
+
+if %choice%==1 goto start
+if %choice%==2 goto stop
+if %choice%==3 goto restart
+if %choice%==4 exit
+goto end
+
+start
+    echo Starting Stencil Manager...
+    start  %~dp0distStencil_Master.exe
+    goto end
+
+stop
+    echo Stopping Stencil Manager...
+    taskkill F IM Stencil_Master.exe nul 2&1
+    goto end
+
+restart
+    call stop
+    timeout t 2 nul
+    call start
+    goto end
+
+end
+pause
+
+
+👉 Do you want me to make this .bat run minimized in the background (so users don’t see the console window when the app runs)
