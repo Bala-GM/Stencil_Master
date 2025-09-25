@@ -5,7 +5,7 @@ a = Analysis(
     ['app.py'],
     pathex=[],
     binaries=[],
-    datas=[('static', 'static'), ('templates', 'templates'), ('var/app-instance/stencil.db', 'var/app-instance')],
+    datas=[('static', 'static'), ('templates', 'templates')],
     hiddenimports=['flask', 'flask_sqlalchemy'],
     hookspath=[],
     hooksconfig={},

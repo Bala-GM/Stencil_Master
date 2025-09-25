@@ -1,30 +1,19 @@
 #!/usr/bin/env python3
 import os
-import sys
 import sqlite3
 import threading
 import webbrowser
 from flask import Flask, render_template, request, jsonify, abort
 from werkzeug.security import generate_password_hash, check_password_hash
 
-app = Flask(__name__, template_folder="templates", static_folder="static")
-
-# ✅ Define a dynamic, safe location for the DB file
-if getattr(sys, 'frozen', False):
-    BASE_DIR = os.path.dirname(sys.executable)  # Running from PyInstaller exe
-else:
-    BASE_DIR = os.path.dirname(os.path.abspath(__file__))  # Development mode
-
-    VAR_DIR = os.path.join(BASE_DIR, "var", "app-instance")
-    os.makedirs(VAR_DIR, exist_ok=True)
-
-    DB_FILE = os.path.join(VAR_DIR, "stencil.db")
-
-    # ✅ Store into Flask config
-    app.config.update(
+def create_app():
+    app = Flask(__name__, instance_relative_config=True)
+    app.config.from_mapping(
         SECRET_KEY="dev",
-        DATABASE=DB_FILE,
+        DATABASE=os.path.join(app.instance_path, "stencil.db"),
     )
+
+    os.makedirs(app.instance_path, exist_ok=True)
 
     # ---------------- DB helpers ----------------
     def get_db():
@@ -335,14 +324,17 @@ else:
         rows = [dict(r) for r in cur.fetchall()]
         conn.close()
         return jsonify(rows)
-    
+
+    return app
+
+app = create_app()
+
 # ✅ Auto-launch in browser
 def open_browser():
     webbrowser.open("http://127.0.0.1:5005/")
 
 if __name__ == "__main__":
-    init_db()
     threading.Timer(1.5, open_browser).start()
     app.run(debug=True, port=5005)
 
-#pyinstaller --onefile --name Stencil_Master --add-data "static;static" --add-data "templates;templates" --add-data "var/app-instance/stencil.db;var/app-instance" --hidden-import flask --hidden-import flask_sqlalchemy --noconsole --icon=smt-stencils.ico app.py
+#pyinstaller --onefile --name Stencil_Master --add-data "static;static" --add-data "templates;templates" --hidden-import flask --hidden-import flask_sqlalchemy --noconsole --icon=smt-stencils.ico app.py
