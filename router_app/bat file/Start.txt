@@ -1,0 +1,8 @@
+@echo off
+REM === Start Stencil_Master.exe ===
+set EXE_PATH=%~dp0dist\Stencil_Master.exe
+
+echo Starting Stencil Manager...
+start "" "%EXE_PATH%"
+echo ✅ Stencil Manager started.
+pause

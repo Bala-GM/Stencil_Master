@@ -286,9 +286,8 @@ $(async function(){
       columns: [
         { data: 'id' },
         { data: 'fg' },
-        { data: 'side' },
         { data: 'customer' },
-        { data: 'stencil_no' },
+        { data: 'router_no' },
         { data: 'rack_no' },
         { data: 'location' },
         { data: 'condition_status' },
@@ -326,9 +325,9 @@ $(async function(){
       const creds = await promptAuth();
       if (!creds) return;
       editModeId = null;
-      $('#modalTitle').text('Add New Stencil');
-      document.getElementById('stencilForm').reset();
-      const form = document.getElementById('stencilForm');
+      $('#modalTitle').text('Add New Router');
+      document.getElementById('routerForm').reset();
+      const form = document.getElementById('routerForm');
       form.dataset.authUsername = creds.username;
       form.dataset.authPassword = creds.password;
       modal.show();
@@ -340,14 +339,14 @@ $(async function(){
       const creds = await promptAuth();
       if (!creds) return;
       editModeId = selectedRow.id;
-      $('#modalTitle').text(`Edit Stencil #${editModeId}`);
+      $('#modalTitle').text(`Edit Router #${editModeId}`);
       const res = await fetch(`/api/get/${editModeId}`);
       const data = await res.json();
       for (const [k,v] of Object.entries(data)) {
-        const el = document.querySelector(`#stencilForm [name="${k}"]`);
+        const el = document.querySelector(`#routerForm [name="${k}"]`);
         if (el) el.value = v || '';
       }
-      const form = document.getElementById('stencilForm');
+      const form = document.getElementById('routerForm');
       form.dataset.authUsername = creds.username;
       form.dataset.authPassword = creds.password;
       modal.show();
@@ -355,7 +354,7 @@ $(async function(){
 
     // Save
     $('#saveBtn').on('click', async function(){
-      const form = document.getElementById('stencilForm');
+      const form = document.getElementById('routerForm');
       if (!form.reportValidity()) return;
       const payload = toUpperObj(formToObj(form));
       payload.username = form.dataset.authUsername;
@@ -392,7 +391,7 @@ $(async function(){
     });
 
     $('#editModal').on('hidden.bs.modal', function(){
-      const form = document.getElementById('stencilForm');
+      const form = document.getElementById('routerForm');
       delete form.dataset.authUsername;
       delete form.dataset.authPassword;
     });
@@ -422,7 +421,7 @@ $(async function(){
     function openActionModal(actionName, creds=null) {
       if (!selectedRow) return;
       currentAction = actionName;
-      $('#actionModalTitle').text(`${actionName} Stencil #${selectedRow.id}`);
+      $('#actionModalTitle').text(`${actionName} Router #${selectedRow.id}`);
       document.getElementById('actionForm').reset();
       const aform = document.getElementById('actionForm');
       if (creds) {
@@ -495,7 +494,7 @@ $(async function(){
       if (!selectedRow) return;
       const creds = await promptAuth();
       if (!creds) return;
-      if (!confirm('Delete stencil #' + selectedRow.id + '?')) return;
+      if (!confirm('Delete router #' + selectedRow.id + '?')) return;
       const res = await fetch(`/api/delete/${selectedRow.id}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -521,24 +520,15 @@ $(async function(){
       columns: [
         { data: 'id' },
         { data: 'fg' },
-        { data: 'side' },
         { data: 'customer' },
-        { data: 'stencil_no' },
+        { data: 'router_no' },
         { data: 'rack_no' },
         { data: 'location' },
-        { data: 'stencil_mils' },
-        { data: 'stencil_mils_usl' },
-        { data: 'stencil_mils_lsl' },
-        { data: 'stencil_supplier' },
-        { data: 'stencil_pr_no' },
+        { data: 'router_supplier' },
+        { data: 'router_pr_no' },
         { data: 'date_received' },
-        { data: 'stencil_validation_dt' },
-        { data: 'stencil_revalidation_dt' },
-        { data: 'tension_a' },
-        { data: 'tension_b' },
-        { data: 'tension_c' },
-        { data: 'tension_d' },
-        { data: 'tension_e' },
+        { data: 'router_validation_dt' },
+        { data: 'router_revalidation_dt' },
         { data: 'received_by' },
         { data: 'condition_status' },
         { data: 'production_status' },
@@ -558,18 +548,12 @@ $(async function(){
       order: [[6, 'asc']],
       columns: [
         { data: 'fg' },
-        { data: 'side' },
         { data: 'customer' },
-        { data: 'stencil_no' },
+        { data: 'router_no' },
         { data: 'rack_no' },
         { data: 'location' },
-        { data: 'stencil_validation_dt' },
-        { data: 'stencil_revalidation_dt' },
-        { data: 'tension_a' },
-        { data: 'tension_b' },
-        { data: 'tension_c' },
-        { data: 'tension_d' },
-        { data: 'tension_e' },
+        { data: 'router_validation_dt' },
+        { data: 'router_revalidation_dt' },
         { data: 'remarks' },
         { data: 'condition_status' },
         { data: 'production_status' },
@@ -581,7 +565,7 @@ $(async function(){
         $(row).removeClass('case1 case2 case3 tension-red tension-pink');
 
         const today = new Date();
-        const reval = new Date(Date.parse(data.stencil_revalidation_dt));
+        const reval = new Date(Date.parse(data.router_revalidation_dt));
         const diffDays = Math.ceil((reval - today) / (1000*60*60*24));
 
         let condStatus = data.condition_status || "";
@@ -596,27 +580,6 @@ $(async function(){
           } else if (diffDays <= 10) {
             $(row).addClass('case1');
             condStatus = "RE-VALIDATION NEED TO DONE SOON";
-          }
-        }
-
-        const tensions = [
-          parseFloat(data.tension_a),
-          parseFloat(data.tension_b),
-          parseFloat(data.tension_c),
-          parseFloat(data.tension_d),
-          parseFloat(data.tension_e)
-        ];
-        for (const t of tensions) {
-          if (!isNaN(t)) {
-            if (t < 35) {
-              $(row).addClass('tension-red');
-              condStatus = "STENCIL EOL";
-              break;
-            } else if (t === 35 || t === 36) {
-              $(row).addClass('tension-pink');
-              condStatus = "STENCIL RE-ORDER SOON";
-              break;
-            }
           }
         }
 
@@ -659,15 +622,15 @@ async function downloadExcel() {
 
     function makeSheet(data, cols, sheetName) {
       const rows = data.map(r => cols.map(k => {
-        // ✅ Reformat all date/time fields ["date_received", "stencil_validation_dt", "stencil_revalidation_dt", "out_time", "in_time"]
-        if (["date_received", "stencil_validation_dt", "stencil_revalidation_dt", "out_time", "in_time"].includes(k)) {
+        // ✅ Reformat all date/time fields ["date_received", "router_validation_dt", "router_revalidation_dt", "out_time", "in_time"]
+        if (["date_received", "router_validation_dt", "router_revalidation_dt", "out_time", "in_time"].includes(k)) {
           return formatExcelDate(r[k]);
         }
         return r[k] ?? "";
       }));
 
       const aoa = [cols.map(c => c.toUpperCase()), ...rows];
-      aoa.push(["Stencil Master List"]);
+      aoa.push(["Router Master List"]);
       const ws = XLSX.utils.aoa_to_sheet(aoa);
 
       // Auto column widths
@@ -686,31 +649,29 @@ async function downloadExcel() {
 
     // --- Sheets ---
     makeSheet(homeRes.value, 
-      ["id","fg","side","customer","stencil_no","rack_no","location","condition_status","production_status"], 
+      ["id","fg","customer","router_no","rack_no","location","condition_status","production_status"], 
       "Home"
     );
 
     makeSheet(recRes.value, [
-      "id","fg","side","customer","stencil_no","rack_no","location",
-      "stencil_mils","stencil_mils_usl","stencil_mils_lsl","stencil_supplier",
-      "stencil_pr_no","date_received","stencil_validation_dt","stencil_revalidation_dt",
-      "tension_a","tension_b","tension_c","tension_d","tension_e",
+      "id","fg","customer","router_no","rack_no","location",
+      "router_supplier",
+      "router_pr_no","date_received","router_validation_dt","router_revalidation_dt",
       "received_by","condition_status","production_status","remarks","emp_id"
     ], "Received List");
 
     makeSheet(statusRes.value, [
-      "fg","side","customer","stencil_no","rack_no","location",
-      "stencil_validation_dt","stencil_revalidation_dt",
-      "tension_a","tension_b","tension_c","tension_d","tension_e",
+      "fg","customer","router_no","rack_no","location",
+      "router_validation_dt","router_revalidation_dt",
       "remarks","condition_status","production_status","emp_id"
     ], "Status");
 
     makeSheet(isosRes.value, 
-      ["stencil_no","fg","customer","rack_no","location","out_time","in_time","remarks","status","operator_id"], 
+      ["router_no","fg","customer","rack_no","location","out_time","in_time","remarks","status","operator_id"], 
       "ISOS"
     );
 
-    XLSX.writeFile(wb, "Stencil_Data.xlsx");
+    XLSX.writeFile(wb, "Router_Data.xlsx");
     alert("✅ Excel downloaded successfully!");
   } catch (err) {
     console.error(err);
@@ -743,7 +704,7 @@ if ($("#isosTable").length) {
   const isosTable = $("#isosTable").DataTable({
     ajax: { url: "/api/isos_list", dataSrc: "" },
     columns: [
-      { data: "stencil_no" },
+      { data: "router_no" },
       { data: "fg" },
       { data: "customer" },
       { data: "rack_no" },
@@ -777,40 +738,39 @@ if ($("#isosTable").length) {
   $("#scanInput").on("keypress", async function (e) {
     if (e.which === 13) {
       e.preventDefault();
-      const stencilNo = $(this).val().trim();
-      if (!stencilNo) return;
+      const routerNo = $(this).val().trim();
+      if (!routerNo) return;
 
       try {
-        const res = await fetch(`/api/isos_lookup/${encodeURIComponent(stencilNo)}`);
+        const res = await fetch(`/api/isos_lookup/${encodeURIComponent(routerNo)}`);
         const data = await res.json();
 
         if (!data.ok) {
-          alert(data.error || "Stencil not found");
+          alert(data.error || "Router not found");
           return;
         }
 
         // 🚨 Condition Status Gate
         const blockedStatuses = [
           "MOVE", "REWORK", "SCRAP",
-          "REVALIDATION TIME END", "RE-VALIDATION NEED TO DONE SOON",
-          "STENCIL EOL", "STENCIL RE-ORDER SOON"
+          "REVALIDATION TIME END", "RE-VALIDATION NEED TO DONE SOON"
         ];
 
-        if (data.stencil.condition_status && blockedStatuses.includes(data.stencil.condition_status.toUpperCase())) {
-          alert(`❌ Access Denied: Stencil is in Condition Status "${data.stencil.condition_status}"`);
+        if (data.router.condition_status && blockedStatuses.includes(data.router.condition_status.toUpperCase())) {
+          alert(`❌ Access Denied: Router is in Condition Status "${data.router.condition_status}"`);
           $(this).val("");
           return;
         }
 
         // ✅ Allowed → fill form
-        $("#stencil_no").val(stencilNo);
+        $("#router_no").val(routerNo);
 
         if (data.active_cycle) {
           currentAction = "IN";
-          $("#isosModalTitle").text(`Scan IN: ${stencilNo}`);
+          $("#isosModalTitle").text(`Scan IN: ${routerNo}`);
         } else {
           currentAction = "OUT";
-          $("#isosModalTitle").text(`Scan OUT: ${stencilNo}`);
+          $("#isosModalTitle").text(`Scan OUT: ${routerNo}`);
         }
 
         modalEl.show();
@@ -858,7 +818,7 @@ if ($("#isosTable").length) {
         return;
       }
 
-      alert(`✅ Stencil ${currentAction} recorded: ${data.status}`);
+      alert(`✅ Router ${currentAction} recorded: ${data.status}`);
       modalEl.hide();
       isosTable.ajax.reload(null, false);
     } catch (err) {

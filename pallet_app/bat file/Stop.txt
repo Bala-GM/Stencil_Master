@@ -1,0 +1,13 @@
+@echo off
+REM === Stop Stencil_Master.exe process ===
+echo Stopping Stencil Manager...
+
+taskkill /F /IM Stencil_Master.exe >nul 2>&1
+
+if %ERRORLEVEL%==0 (
+    echo ✅ Stencil Manager stopped.
+) else (
+    echo ⚠️ Stencil Manager was not running.
+)
+
+pause

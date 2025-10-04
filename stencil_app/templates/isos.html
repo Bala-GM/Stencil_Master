@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="mb-3">
+  <label class="form-label fw-bold">Scan Stencil QR:</label>
+  <input type="text" id="scanInput" class="form-control" placeholder="Scan or type stencil number" autofocus>
+</div>
+
+<div class="table-responsive">
+  <table id="isosTable" class="table table-striped table-bordered w-100">
+    <thead>
+      <tr>
+        <th>STENCIL NO</th>
+        <th>FG</th>
+        <th>CUSTOMER</th>
+        <th>RACK NO</th>
+        <th>LOCATION</th>
+        <th>Out Time</th>
+        <th>In Time</th>
+        <th>Remarks</th>
+        <th>Production Status</th>
+        <th>Operator ID</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</div>
+
+<!-- ✅ Production Status Modal -->
+<div class="modal fade" id="isosModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="isosModalTitle">Stencil Check</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="isosForm" class="row g-3">
+          <input type="hidden" name="stencil_no" id="stencil_no">
+
+          <!-- ✅ Production Status Checks -->
+          <div class="col-md-4">
+            <label class="form-label">Cleaned</label>
+            <select name="cleaned_ok" class="form-select" required>
+              <option value="">-- Select --</option>
+              <option value="OK">OK</option>
+              <option value="NG">NG</option>
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Dent Check</label>
+            <select name="dent_ok" class="form-select" required>
+              <option value="">-- Select --</option>
+              <option value="OK">OK</option>
+              <option value="NG">NG</option>
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Mesh Check</label>
+            <select name="mesh_ok" class="form-select" required>
+              <option value="">-- Select --</option>
+              <option value="OK">OK</option>
+              <option value="NG">NG</option>
+            </select>
+          </div>
+
+          <!-- ✅ Tensions -->
+          <div class="col-md-2"><label class="form-label">Tension A</label><input type="number" step="0.1" name="tension_a" class="form-control"></div>
+          <div class="col-md-2"><label class="form-label">Tension B</label><input type="number" step="0.1" name="tension_b" class="form-control"></div>
+          <div class="col-md-2"><label class="form-label">Tension C</label><input type="number" step="0.1" name="tension_c" class="form-control"></div>
+          <div class="col-md-2"><label class="form-label">Tension D</label><input type="number" step="0.1" name="tension_d" class="form-control"></div>
+          <div class="col-md-2"><label class="form-label">Tension E</label><input type="number" step="0.1" name="tension_e" class="form-control"></div>
+
+          <!-- Remarks -->
+          <div class="col-md-6">
+            <label class="form-label">Remarks</label>
+            <input type="text" name="remarks" class="form-control">
+          </div>
+
+          <!-- ✅ Operator ID -->
+          <div class="col-md-6">
+            <label class="form-label">Operator ID</label>
+            <input type="text" name="operator_id" class="form-control" placeholder="Enter OP-USER ID" required>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-primary" id="isosSubmitBtn">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

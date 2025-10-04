@@ -10,7 +10,7 @@ def create_app():
     app = Flask(__name__, instance_relative_config=True)
     app.config.from_mapping(
         SECRET_KEY="dev",
-        DATABASE=os.path.join(app.instance_path, "stencil.db"),
+        DATABASE=os.path.join(app.instance_path, "router.db"),
     )
 
     os.makedirs(app.instance_path, exist_ok=True)
@@ -25,14 +25,14 @@ def create_app():
         conn = get_db()
         cur = conn.cursor()
 
-        # main stencil table with two status columns
+        # main router table with two status columns
         cur.execute("""
-            CREATE TABLE IF NOT EXISTS stencil_list (
+            CREATE TABLE IF NOT EXISTS router_list (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                fg TEXT, side TEXT, customer TEXT, stencil_no TEXT, rack_no TEXT, location TEXT,
-                stencil_mils TEXT, stencil_mils_usl TEXT, stencil_mils_lsl TEXT, stencil_supplier TEXT,
-                stencil_pr_no TEXT, date_received TEXT, stencil_validation_dt TEXT, stencil_revalidation_dt TEXT,
-                tension_a TEXT, tension_b TEXT, tension_c TEXT, tension_d TEXT, tension_e TEXT, received_by TEXT,
+                fg TEXT, customer TEXT, router_no TEXT, rack_no TEXT, location TEXT,
+                router_supplier TEXT,
+                router_pr_no TEXT, date_received TEXT, router_validation_dt TEXT, router_revalidation_dt TEXT,
+                received_by TEXT,
                 condition_status TEXT DEFAULT 'ACTIVE',
                 production_status TEXT DEFAULT '',
                 emp_id TEXT,
@@ -44,14 +44,14 @@ def create_app():
 
         # history table
         cur.execute("""
-            CREATE TABLE IF NOT EXISTS stencil_history (
+            CREATE TABLE IF NOT EXISTS router_history (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                stencil_id INTEGER,
+                router_id INTEGER,
                 changed_column TEXT,
                 old_value TEXT,
                 new_value TEXT,
                 changed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (stencil_id) REFERENCES stencil_list (id)
+                FOREIGN KEY (router_id) REFERENCES router_list (id)
             );
         """)
 
@@ -78,18 +78,13 @@ def create_app():
         cur.execute("""
             CREATE TABLE IF NOT EXISTS isos_cycles (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                stencil_no TEXT,
+                router_no TEXT,
                 out_time TIMESTAMP,
                 in_time TIMESTAMP,
                 remarks TEXT,
                 cleaned_ok TEXT,
                 dent_ok TEXT,
                 mesh_ok TEXT,
-                tension_a TEXT,
-                tension_b TEXT,
-                tension_c TEXT,
-                tension_d TEXT,
-                tension_e TEXT,
                 operator_id TEXT,   -- ✅ replaced emp_id with operator_id
                 status TEXT,
                 cycle_open INTEGER DEFAULT 1
@@ -120,11 +115,11 @@ def create_app():
         init_db()
 
     # ---------------- Utilities ----------------
-    SHORT_FIELDS = ["fg","side","customer","stencil_no","rack_no","location"]
+    SHORT_FIELDS = ["fg","customer","router_no","rack_no","location"]
     ALL_FIELDS = SHORT_FIELDS + [
-        "stencil_mils","stencil_mils_usl","stencil_mils_lsl","stencil_supplier",
-        "stencil_pr_no","date_received","stencil_validation_dt","stencil_revalidation_dt",
-        "tension_a","tension_b","tension_c","tension_d","tension_e","received_by",
+        "router_supplier",
+        "router_pr_no","date_received","router_validation_dt","router_revalidation_dt",
+        "received_by",
         "condition_status","production_status","emp_id","remarks"
     ]
 
@@ -295,7 +290,7 @@ def create_app():
         conn = get_db()
         rows = conn.execute(f"""
             SELECT id, {', '.join(SHORT_FIELDS)}, condition_status, production_status
-            FROM stencil_list
+            FROM router_list
             WHERE condition_status != 'SCRAP'
             ORDER BY updated_at DESC, id DESC
         """).fetchall()
@@ -305,14 +300,14 @@ def create_app():
     @app.route("/api/received")
     def api_received():
         conn = get_db()
-        rows = conn.execute("SELECT * FROM stencil_list ORDER BY updated_at DESC, id DESC").fetchall()
+        rows = conn.execute("SELECT * FROM router_list ORDER BY updated_at DESC, id DESC").fetchall()
         conn.close()
         return jsonify([row_to_dict(r, ["id"] + ALL_FIELDS) for r in rows])
 
     @app.route("/api/status")
     def api_status():
         conn = get_db()
-        rows = conn.execute("SELECT * FROM stencil_list WHERE condition_status != 'SCRAP' ORDER BY stencil_revalidation_dt ASC").fetchall()
+        rows = conn.execute("SELECT * FROM router_list WHERE condition_status != 'SCRAP' ORDER BY router_revalidation_dt ASC").fetchall()
         conn.close()
         return jsonify([row_to_dict(r) for r in rows])
 
@@ -321,10 +316,10 @@ def create_app():
     def api_isos_list():
         conn = get_db()
         rows = conn.execute("""
-            SELECT i.id, i.stencil_no, s.fg, s.customer, s.rack_no, s.location,
+            SELECT i.id, i.router_no, s.fg, s.customer, s.rack_no, s.location,
                 i.out_time, i.in_time, i.remarks, i.status, i.operator_id
             FROM isos_cycles i
-            JOIN stencil_list s ON i.stencil_no = s.stencil_no
+            JOIN router_list s ON i.router_no = s.router_no
             ORDER BY i.out_time DESC
         """).fetchall()
         conn.close()
@@ -334,36 +329,34 @@ def create_app():
     FORBIDDEN_STATUSES = {
         "MOVE", "REWORK", "SCRAP",
         "REVALIDATION TIME END",
-        "RE-VALIDATION NEED TO DONE SOON",
-        "STENCIL EOL",
-        "STENCIL RE-ORDER SOON"
+        "RE-VALIDATION NEED TO DONE SOON"
     }
 
-    def is_stencil_blocked(status: str) -> bool:
+    def is_router_blocked(status: str) -> bool:
         if not status:
             return False
         return status.strip().upper() in FORBIDDEN_STATUSES
 
-    @app.route("/api/isos_lookup/<path:stencil_no>")
-    def api_isos_lookup(stencil_no):
+    @app.route("/api/isos_lookup/<path:router_no>")
+    def api_isos_lookup(router_no):
         conn = get_db()
-        row = conn.execute("SELECT * FROM stencil_list WHERE stencil_no=?", (stencil_no,)).fetchone()
+        row = conn.execute("SELECT * FROM router_list WHERE router_no=?", (router_no,)).fetchone()
         if not row:
             conn.close()
-            return jsonify({"ok": False, "error": f"Stencil not found: {stencil_no}"}), 404
-        active = conn.execute("SELECT * FROM isos_cycles WHERE stencil_no=? AND cycle_open=1", (stencil_no,)).fetchone()
+            return jsonify({"ok": False, "error": f"Router not found: {router_no}"}), 404
+        active = conn.execute("SELECT * FROM isos_cycles WHERE router_no=? AND cycle_open=1", (router_no,)).fetchone()
         conn.close()
-        return jsonify({"ok": True, "stencil": row_to_dict(row), "active_cycle": dict(active) if active else None})
+        return jsonify({"ok": True, "router": row_to_dict(row), "active_cycle": dict(active) if active else None})
 
     # ---------------- ISOS OUT ----------------
     @app.route("/api/isos_out", methods=["POST"])
     def api_isos_out():
         payload = request.get_json()
-        stencil_no = payload.get("stencil_no")
+        router_no = payload.get("router_no")
         operator_id = payload.get("operator_id")
 
-        if not stencil_no or not operator_id:
-            return jsonify({"ok": False, "error": "Stencil No and Operator ID required"}), 400
+        if not router_no or not operator_id:
+            return jsonify({"ok": False, "error": "router No and Operator ID required"}), 400
 
         conn = get_db()
         # ✅ Validate operator_id exists
@@ -372,41 +365,39 @@ def create_app():
             conn.close()
             return jsonify({"ok": False, "error": "Invalid Operator ID"}), 403
 
-        # Check stencil
-        row = conn.execute("SELECT * FROM stencil_list WHERE stencil_no=?", (stencil_no,)).fetchone()
+        # Check router
+        row = conn.execute("SELECT * FROM router_list WHERE router_no=?", (router_no,)).fetchone()
         if not row:
             conn.close()
-            return jsonify({"ok": False, "error": "Stencil not found"}), 404
+            return jsonify({"ok": False, "error": "router not found"}), 404
 
-        if is_stencil_blocked(row["condition_status"]):
+        if is_router_blocked(row["condition_status"]):
             conn.close()
-            return jsonify({"ok": False, "error": f"Stencil cannot be used (condition_status: {row['condition_status']})"}), 400
+            return jsonify({"ok": False, "error": f"router cannot be used (condition_status: {row['condition_status']})"}), 400
 
         # Ensure not already OUT
-        active = conn.execute("SELECT * FROM isos_cycles WHERE stencil_no=? AND cycle_open=1", (stencil_no,)).fetchone()
+        active = conn.execute("SELECT * FROM isos_cycles WHERE router_no=? AND cycle_open=1", (router_no,)).fetchone()
         if active:
             conn.close()
-            return jsonify({"ok": False, "error": "Stencil already OUT, must scan IN first"}), 400
+            return jsonify({"ok": False, "error": "router already OUT, must scan IN first"}), 400
 
         # Status calc
         cleaned_ok = payload.get("cleaned_ok")
         dent_ok = payload.get("dent_ok")
         mesh_ok = payload.get("mesh_ok")
-        tensions = [payload.get(f"tension_{x}") for x in "abcde"]
         remarks = payload.get("remarks")
         status = "OK" if all([cleaned_ok == "OK", dent_ok == "OK", mesh_ok == "OK"]) else "NG"
 
         # Insert OUT cycle
         conn.execute("""
             INSERT INTO isos_cycles (
-                stencil_no, out_time, remarks,
+                router_no, out_time, remarks,
                 cleaned_ok, dent_ok, mesh_ok,
-                tension_a, tension_b, tension_c, tension_d, tension_e,
                 operator_id, status, cycle_open
-            ) VALUES (?, CURRENT_TIMESTAMP, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
-        """, (stencil_no, remarks, cleaned_ok, dent_ok, mesh_ok, *tensions, operator_id, status))
+            ) VALUES (?, CURRENT_TIMESTAMP, ?, ?, ?, ?, ?, ?, 1)
+        """, (router_no, remarks, cleaned_ok, dent_ok, mesh_ok, operator_id, status))
 
-        conn.execute("UPDATE stencil_list SET production_status=? WHERE stencil_no=?", (status, stencil_no))
+        conn.execute("UPDATE router_list SET production_status=? WHERE router_no=?", (status, router_no))
         conn.commit()
         conn.close()
         return jsonify({"ok": True, "status": status})
@@ -415,11 +406,11 @@ def create_app():
     @app.route("/api/isos_in", methods=["POST"])
     def api_isos_in():
         payload = request.get_json()
-        stencil_no = payload.get("stencil_no")
+        router_no = payload.get("router_no")
         operator_id = payload.get("operator_id")
 
-        if not stencil_no or not operator_id:
-            return jsonify({"ok": False, "error": "Stencil No and Operator ID required"}), 400
+        if not router_no or not operator_id:
+            return jsonify({"ok": False, "error": "router No and Operator ID required"}), 400
 
         conn = get_db()
         # ✅ Validate operator_id exists
@@ -428,25 +419,24 @@ def create_app():
             conn.close()
             return jsonify({"ok": False, "error": "Invalid Operator ID"}), 403
 
-        row = conn.execute("SELECT * FROM stencil_list WHERE stencil_no=?", (stencil_no,)).fetchone()
+        row = conn.execute("SELECT * FROM router_list WHERE router_no=?", (router_no,)).fetchone()
         if not row:
             conn.close()
-            return jsonify({"ok": False, "error": "Stencil not found"}), 404
+            return jsonify({"ok": False, "error": "router not found"}), 404
 
-        if is_stencil_blocked(row["condition_status"]):
+        if is_router_blocked(row["condition_status"]):
             conn.close()
-            return jsonify({"ok": False, "error": f"Stencil cannot be returned (condition_status: {row['condition_status']})"}), 400
+            return jsonify({"ok": False, "error": f"router cannot be returned (condition_status: {row['condition_status']})"}), 400
 
-        active = conn.execute("SELECT * FROM isos_cycles WHERE stencil_no=? AND cycle_open=1", (stencil_no,)).fetchone()
+        active = conn.execute("SELECT * FROM isos_cycles WHERE router_no=? AND cycle_open=1", (router_no,)).fetchone()
         if not active:
             conn.close()
-            return jsonify({"ok": False, "error": "No active OUT cycle for this stencil"}), 400
+            return jsonify({"ok": False, "error": "No active OUT cycle for this router"}), 400
 
         # Status calc
         cleaned_ok = payload.get("cleaned_ok")
         dent_ok = payload.get("dent_ok")
         mesh_ok = payload.get("mesh_ok")
-        tensions = [payload.get(f"tension_{x}") for x in "abcde"]
         status = "OK" if all([cleaned_ok == "OK", dent_ok == "OK", mesh_ok == "OK"]) else "NG"
 
         # Update IN cycle
@@ -454,21 +444,20 @@ def create_app():
             UPDATE isos_cycles
             SET in_time=CURRENT_TIMESTAMP,
                 cleaned_ok=?, dent_ok=?, mesh_ok=?,
-                tension_a=?, tension_b=?, tension_c=?, tension_d=?, tension_e=?,
                 operator_id=?, status=?, cycle_open=0
             WHERE id=?
-        """, (cleaned_ok, dent_ok, mesh_ok, *tensions, operator_id, status, active["id"]))
+        """, (cleaned_ok, dent_ok, mesh_ok, operator_id, status, active["id"]))
 
-        conn.execute("UPDATE stencil_list SET production_status=? WHERE stencil_no=?", (status, stencil_no))
+        conn.execute("UPDATE router_list SET production_status=? WHERE router_no=?", (status, router_no))
         conn.commit()
         conn.close()
         return jsonify({"ok": True, "status": status})
 
     # ------------- Standard CRUD / action APIs -------------
-    @app.route("/api/get/<int:stencil_id>")
-    def api_get(stencil_id):
+    @app.route("/api/get/<int:router_id>")
+    def api_get(router_id):
         conn = get_db()
-        row = conn.execute("SELECT * FROM stencil_list WHERE id=?", (stencil_id,)).fetchone()
+        row = conn.execute("SELECT * FROM router_list WHERE id=?", (router_id,)).fetchone()
         conn.close()
         if not row:
             abort(404)
@@ -486,7 +475,7 @@ def create_app():
         conn = get_db()
         cur = conn.cursor()
         cur.execute(f"""
-            INSERT INTO stencil_list ({', '.join(ALL_FIELDS)})
+            INSERT INTO router_list ({', '.join(ALL_FIELDS)})
             VALUES ({', '.join(['?'] * len(ALL_FIELDS))})
         """, [data.get(k) for k in ALL_FIELDS])
         new_id = cur.lastrowid
@@ -494,8 +483,8 @@ def create_app():
         conn.close()
         return jsonify({"ok": True, "id": new_id})
 
-    @app.route("/api/update/<int:stencil_id>", methods=["POST"])
-    def api_update(stencil_id):
+    @app.route("/api/update/<int:router_id>", methods=["POST"])
+    def api_update(router_id):
         payload = request.get_json(silent=True) or request.form.to_dict()
         ok, emp_id = check_credentials(payload)
         if not ok:
@@ -503,7 +492,7 @@ def create_app():
 
         conn = get_db()
         cur = conn.cursor()
-        old = cur.execute("SELECT * FROM stencil_list WHERE id=?", (stencil_id,)).fetchone()
+        old = cur.execute("SELECT * FROM router_list WHERE id=?", (router_id,)).fetchone()
         if not old:
             conn.close()
             abort(404)
@@ -515,23 +504,23 @@ def create_app():
             old_val = (old[f] or "").strip()
             new_val = (new_data.get(f) or "").strip()
             if old_val != new_val:
-                changes.append((stencil_id, f, old_val, new_val))
+                changes.append((router_id, f, old_val, new_val))
 
         if changes:
             cur.executemany("""
-                INSERT INTO stencil_history (stencil_id, changed_column, old_value, new_value)
+                INSERT INTO router_history (router_id, changed_column, old_value, new_value)
                 VALUES (?,?,?,?)
             """, changes)
             set_clause = ", ".join([f"{f}=?" for f in ALL_FIELDS]) + ", updated_at=CURRENT_TIMESTAMP"
-            values = [new_data.get(f) for f in ALL_FIELDS] + [stencil_id]
-            cur.execute(f"UPDATE stencil_list SET {set_clause} WHERE id=?", values)
+            values = [new_data.get(f) for f in ALL_FIELDS] + [router_id]
+            cur.execute(f"UPDATE router_list SET {set_clause} WHERE id=?", values)
 
         conn.commit()
         conn.close()
         return jsonify({"ok": True, "changes": len(changes)})
 
-    @app.route("/api/action/<int:stencil_id>", methods=["POST"])
-    def api_action(stencil_id):
+    @app.route("/api/action/<int:router_id>", methods=["POST"])
+    def api_action(router_id):
         payload = request.get_json(silent=True) or request.form.to_dict()
         ok, emp_id = check_credentials(payload)
         if not ok:
@@ -548,47 +537,47 @@ def create_app():
         cur = conn.cursor()
         # set condition_status for these actions; production_status left untouched
         cur.execute("""
-            UPDATE stencil_list
+            UPDATE router_list
             SET condition_status=?, emp_id=?, remarks=?, updated_at=CURRENT_TIMESTAMP
             WHERE id=?
-        """, (action, emp, remarks, stencil_id))
+        """, (action, emp, remarks, router_id))
         conn.commit()
         conn.close()
         return jsonify({"ok": True, "action": action})
 
-    @app.route("/api/delete/<int:stencil_id>", methods=["POST"])
-    def api_delete(stencil_id):
+    @app.route("/api/delete/<int:router_id>", methods=["POST"])
+    def api_delete(router_id):
         payload = request.get_json(silent=True) or request.form.to_dict()
         ok, emp_id = check_credentials(payload)
         if not ok:
             return jsonify({"ok": False, "error": "Unauthorized"}), 403
         conn = get_db()
         cur = conn.cursor()
-        cur.execute("DELETE FROM stencil_list WHERE id=?", (stencil_id,))
-        cur.execute("DELETE FROM stencil_history WHERE stencil_id=?", (stencil_id,))
+        cur.execute("DELETE FROM router_list WHERE id=?", (router_id,))
+        cur.execute("DELETE FROM router_history WHERE router_id=?", (router_id,))
         conn.commit()
         conn.close()
         return jsonify({"ok": True})
 
-    @app.route("/api/history/<int:stencil_id>")
-    def api_history(stencil_id):
+    @app.route("/api/history/<int:router_id>")
+    def api_history(router_id):
         column = request.args.get("column")
         conn = get_db()
         cur = conn.cursor()
         if column and column != "all":
             cur.execute("""
                 SELECT changed_at, changed_column, old_value, new_value
-                FROM stencil_history
-                WHERE stencil_id = ? AND changed_column = ?
+                FROM router_history
+                WHERE router_id = ? AND changed_column = ?
                 ORDER BY changed_at DESC, id DESC
-            """, (stencil_id, column))
+            """, (router_id, column))
         else:
             cur.execute("""
                 SELECT changed_at, changed_column, old_value, new_value
-                FROM stencil_history
-                WHERE stencil_id = ?
+                FROM router_history
+                WHERE router_id = ?
                 ORDER BY changed_at DESC, id DESC
-            """, (stencil_id,))
+            """, (router_id,))
         rows = [dict(r) for r in cur.fetchall()]
         conn.close()
         return jsonify(rows)
@@ -600,12 +589,12 @@ app = create_app()
 
 def open_browser():
     try:
-        webbrowser.open("http://127.0.0.1:5005/")
+        webbrowser.open("http://127.0.0.1:5007/")
     except Exception:
         pass
 
 if __name__ == "__main__":
     threading.Timer(1.5, open_browser).start()
-    app.run(debug=True, port=5005)
+    app.run(debug=True, port=5007)
 
-#pyinstaller --onefile --name Stencil_Master --add-data "static;static" --add-data "templates;templates" --hidden-import flask --hidden-import flask_sqlalchemy --noconsole --icon=gbicosmt.ico app.py
+#pyinstaller --onefile --name Router_Master --add-data "static;static" --add-data "templates;templates" --hidden-import flask --hidden-import flask_sqlalchemy --noconsole --icon=gbicosmt.ico app.py

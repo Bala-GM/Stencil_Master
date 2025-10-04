@@ -76,10 +76,36 @@
     <label class="form-label">RECEIVED BY</label>
     <input name="received_by" class="form-control uc">
   </div>
+
+  <!-- ROW 7 (NEW) -->
+  <!--<div class="col-md-4">
+    <label class="form-label">Condition Status</label>
+    <select name="condition_status" class="form-select">
+      <option value="">-- Select --</option>
+      <option value="">Validated</option>
+      <option value="MOVE">Move</option>
+      <option value="REWORK">Rework</option>
+      <option value="SCRAP">Scrap</option>
+      <option value="REVALIDATION TIME END">Revalidation Time End</option>
+      <option value="RE-VALIDATION NEED TO DONE SOON">Re-Validation Need to Done Soon</option>
+      <option value="STENCIL EOL">Stencil EOL</option>
+      <option value="STENCIL RE-ORDER SOON">Stencil Re-Order Soon</option>
+    </select>
+  </div>
+
+  <div class="col-md-4">
+    <label class="form-label">Production Status</label>
+    <select name="production_status" class="form-select">
+      <option value="">-- Select --</option>
+      <option value="OK">OK</option>
+      <option value="NG">NG</option>
+    </select>
+  </div>-->
+
 </form>
 
 <script>
-// Auto-fill from stencil_mils
+/* Existing scripts kept the same */
 document.querySelector('[name="stencil_mils"]').addEventListener('input', e => {
   const val = e.target.value.trim();
   if (!val) return;
@@ -87,7 +113,6 @@ document.querySelector('[name="stencil_mils"]').addEventListener('input', e => {
   const lslEl = document.querySelector('[name="stencil_mils_lsl"]');
 
   if (val.includes('/')) {
-    // Handle fraction style (e.g., "5/8")
     const parts = val.split('/');
     if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
       uslEl.value = `${Number(parts[0]) + 2}/${Number(parts[1]) + 2}`;
@@ -99,7 +124,6 @@ document.querySelector('[name="stencil_mils"]').addEventListener('input', e => {
   }
 });
 
-// Auto-set revalidation date = +1 year
 document.querySelector('[name="stencil_validation_dt"]').addEventListener('change', e => {
   const dt = new Date(e.target.value);
   if (!isNaN(dt)) {
@@ -108,7 +132,6 @@ document.querySelector('[name="stencil_validation_dt"]').addEventListener('chang
   }
 });
 
-// Fetch existing data when STENCIL NO + SIDE are filled
 async function tryFetchStencilData() {
   const stencilNo = document.querySelector('[name="stencil_no"]').value.trim().toUpperCase();
   const side = document.querySelector('[name="side"]').value.trim().toUpperCase();
@@ -118,10 +141,10 @@ async function tryFetchStencilData() {
   const list = await res.json();
   const match = list.find(r => r.stencil_no === stencilNo && r.side === side);
   if (match) {
-    // Fill fields except FG and Customer
     const fields = ["rack_no","location","stencil_mils","stencil_mils_usl","stencil_mils_lsl",
       "stencil_supplier","stencil_pr_no","date_received","stencil_validation_dt","stencil_revalidation_dt",
-      "tension_a","tension_b","tension_c","tension_d","tension_e","received_by"];
+      "tension_a","tension_b","tension_c","tension_d","tension_e","received_by",
+      "condition_status","production_status"];
     fields.forEach(f => {
       if (match[f]) {
         const el = document.querySelector(`[name="${f}"]`);
