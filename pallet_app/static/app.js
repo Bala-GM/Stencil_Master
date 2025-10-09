@@ -527,7 +527,7 @@ $(async function(){
         { data: 'rack_no' },
         { data: 'location' },
         { data: 'pallet_supplier' },
-        { data: 'pallet_pr_no' },
+        { data: 'supplier_prt_no' },
         { data: 'date_received' },
         { data: 'pallet_validation_dt' },
         { data: 'pallet_revalidation_dt' },
@@ -586,7 +586,7 @@ $(async function(){
           }
         }
 
-        $('td:eq(14)', row).text(condStatus); // condition_status col
+        $('td:eq(9)', row).text(condStatus); // condition_status col
       }
     });
   }
@@ -659,7 +659,7 @@ async function downloadExcel() {
     makeSheet(recRes.value, [
       "id","fg","customer","pallet_no","pallet_qty","rack_no","location",
       "pallet_supplier",
-      "pallet_pr_no","date_received","pallet_validation_dt","pallet_revalidation_dt",
+      "supplier_prt_no","date_received","pallet_validation_dt","pallet_revalidation_dt",
       "received_by","condition_status","production_status","remarks","emp_id"
     ], "Received List");
 

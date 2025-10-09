@@ -31,7 +31,7 @@ def create_app():
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 fg TEXT, customer TEXT, pallet_no TEXT, pallet_qty TEXT, rack_no TEXT, location TEXT,
                 pallet_supplier TEXT,
-                pallet_pr_no TEXT, date_received TEXT, pallet_validation_dt TEXT, pallet_revalidation_dt TEXT,
+                supplier_prt_no TEXT, date_received TEXT, pallet_validation_dt TEXT, pallet_revalidation_dt TEXT,
                 received_by TEXT,
                 condition_status TEXT DEFAULT 'ACTIVE',
                 production_status TEXT DEFAULT '',
@@ -118,7 +118,7 @@ def create_app():
     SHORT_FIELDS = ["fg","customer","pallet_no","pallet_qty","rack_no","location"]
     ALL_FIELDS = SHORT_FIELDS + [
         "pallet_supplier",
-        "pallet_pr_no","date_received","pallet_validation_dt","pallet_revalidation_dt",
+        "supplier_prt_no","date_received","pallet_validation_dt","pallet_revalidation_dt",
         "received_by",
         "condition_status","production_status","emp_id","remarks"
     ]

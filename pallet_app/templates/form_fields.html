@@ -32,8 +32,8 @@
     <input name="pallet_supplier" class="form-control uc">
   </div>
   <div class="col-md-3">
-    <label class="form-label">PALLET PR.NO</label>
-    <input name="pallet_pr_no" class="form-control uc">
+    <label class="form-label">SUPPLIER PRT.NO</label>
+    <input name="supplier_prt_no" class="form-control uc">
   </div>
 
   <!-- ROW 4 -->
@@ -78,7 +78,7 @@ async function tryFetchpalletData() {
   const match = list.find(r => r.pallet_no === palletNo && r.side === side);
   if (match) {
     const fields = ["pallet_qty","rack_no","location",
-      "pallet_supplier","pallet_pr_no","date_received","pallet_validation_dt","pallet_revalidation_dt",
+      "pallet_supplier","supplier_prt_no","date_received","pallet_validation_dt","pallet_revalidation_dt",
       "condition_status","production_status"];
     fields.forEach(f => {
       if (match[f]) {
