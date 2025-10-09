@@ -1,0 +1,35 @@
+@echo off
+echo ============================
+echo   Stencil Manager Control
+echo ============================
+echo 1. Start
+echo 2. Stop
+echo 3. Restart
+echo 4. Exit
+echo ============================
+set /p choice="Enter your choice: "
+
+if "%choice%"=="1" goto start
+if "%choice%"=="2" goto stop
+if "%choice%"=="3" goto restart
+if "%choice%"=="4" exit
+goto end
+
+:start
+    echo Starting Stencil Manager...
+    start "" "%~dp0dist\Stencil_Master.exe"
+    goto end
+
+:stop
+    echo Stopping Stencil Manager...
+    taskkill /F /IM Stencil_Master.exe >nul 2>&1
+    goto end
+
+:restart
+    call :stop
+    timeout /t 2 >nul
+    call :start
+    goto end
+
+:end
+pause
