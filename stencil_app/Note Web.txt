@@ -1,0 +1,60 @@
+import os
+import sqlite3
+import sys
+import time
+import datetime
+import shutil
+import waitress
+import threading
+import webbrowser
+from flask import Flask, render_template, request, jsonify, abort
+from werkzeug.security import generate_password_hash, check_password_hash
+
+issue:-
+
+C:\Users\Users Name\AppData\Local\Programs\Python\Python311\python.exe: No module named waitress how to install waitress in this location
+
+solution:-
+
+C:\Users\Users Name\AppData\Local\Programs\Python\Python311\
+
+The error means the waitress module isn’t installed for that specific Python 3.11 environment
+
+Option 1: Install Waitress using full path in CMD
+
+C:\Users\Users Name\AppData\Local\Programs\Python\Python311\python.exe -m pip install waitress
+
+This ensures that waitress installs in your Python 3.11 environment (the same one running your app).
+
+To verify installation
+
+C:\Users\Users Name\AppData\Local\Programs\Python\Python311\python.exe -m pip show waitress
+
+uninstall waitress
+
+C:\Users\Users Name\AppData\Local\Programs\Python\Python311\python.exe -m pip uninstall waitress
+
+Already built into Python (no install needed)
+
+os
+sqlite3
+sys
+time
+datetime
+shutil
+threading
+webbrowser
+
+Need to install manually (external modules)
+
+Flask
+waitress
+
+Install commands (for your Python 3.11 path)
+
+C:\Users\Users Name\AppData\Local\Programs\Python\Python311\python.exe -m pip install flask waitress
+
+To Verify Installation
+
+C:\Users\Users Name\AppData\Local\Programs\Python\Python311\python.exe -m pip show flask
+C:\Users\Users Name\AppData\Local\Programs\Python\Python311\python.exe -m pip show waitress
