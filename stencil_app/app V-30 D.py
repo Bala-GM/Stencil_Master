@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 import os
-import sqlite3
 import sys
+import sqlite3
+import threading
 import time
 import datetime
 import shutil
-import threading
 import webbrowser
 from flask import Flask, render_template, request, jsonify, abort
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -18,8 +18,11 @@ def create_app():
     # ==============================================================
     # 📂 Database & Backup Paths (AppData safe)
     # ==============================================================
-    
-    BASE_DIR = os.path.join(os.environ["APPDATA"], "Stencil")
+    if getattr(sys, "frozen", False):  # running as EXE
+        BASE_DIR = os.path.join(os.environ["APPDATA"], "Stencil")
+    else:
+        BASE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
+
     LOCAL_DB = os.path.join(BASE_DIR, "stencil.db")
     BACKUP_DIR = os.path.join(BASE_DIR, "backups")
 
@@ -635,16 +638,19 @@ def create_app():
 
     return app
 
+
 # ==============================================================
 # 🚀 Run the Flask App
 # ==============================================================
 app = create_app()
+
 
 def open_browser():
     try:
         webbrowser.open("http://127.0.0.1:5005/")
     except Exception:
         pass
+
 
 if __name__ == "__main__":
     threading.Timer(1.5, open_browser).start()

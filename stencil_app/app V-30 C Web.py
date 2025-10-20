@@ -5,6 +5,7 @@ import sys
 import time
 import datetime
 import shutil
+import waitress
 import threading
 import webbrowser
 from flask import Flask, render_template, request, jsonify, abort
@@ -640,14 +641,8 @@ def create_app():
 # ==============================================================
 app = create_app()
 
-def open_browser():
-    try:
-        webbrowser.open("http://127.0.0.1:5005/")
-    except Exception:
-        pass
-
 if __name__ == "__main__":
-    threading.Timer(1.5, open_browser).start()
-    app.run(debug=True, port=5005)
+    # Run with waitress in production mode
+    waitress.serve(app, host="0.0.0.0", port=5005)
 
 #pyinstaller --onefile --name Stencil_Master --add-data "static;static" --add-data "templates;templates" --hidden-import flask --hidden-import flask_sqlalchemy --noconsole --icon=gbicosmt.ico app.py

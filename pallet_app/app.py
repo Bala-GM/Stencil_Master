@@ -1,23 +1,35 @@
 #!/usr/bin/env python3
 import os
 import sqlite3
+import sys
+import time
+import datetime
+import shutil
 import threading
 import webbrowser
 from flask import Flask, render_template, request, jsonify, abort
 from werkzeug.security import generate_password_hash, check_password_hash
 
 def create_app():
-    app = Flask(__name__, instance_relative_config=True)
-    app.config.from_mapping(
-        SECRET_KEY="dev",
-        DATABASE=os.path.join(app.instance_path, "pallet.db"),
-    )
+    app = Flask(__name__, template_folder="templates", static_folder="static")
+    app.secret_key = "supersecretkey"
 
-    os.makedirs(app.instance_path, exist_ok=True)
+    # ==============================================================
+    # 📂 Database & Backup Paths (AppData safe)
+    # ==============================================================
+    
+    BASE_DIR = os.path.join(os.environ["APPDATA"], "Pallet")
+    LOCAL_DB = os.path.join(BASE_DIR, "pallet.db")
+    BACKUP_DIR = os.path.join(BASE_DIR, "backups")
 
-    # ---------------- DB helpers ----------------
+    os.makedirs(BASE_DIR, exist_ok=True)
+    os.makedirs(BACKUP_DIR, exist_ok=True)
+
+    # ==============================================================
+    # 🗄 Database Helper Functions
+    # ==============================================================
     def get_db():
-        conn = sqlite3.connect(app.config["DATABASE"], detect_types=sqlite3.PARSE_DECLTYPES)
+        conn = sqlite3.connect(LOCAL_DB, detect_types=sqlite3.PARSE_DECLTYPES)
         conn.row_factory = sqlite3.Row
         return conn
 
@@ -110,9 +122,40 @@ def create_app():
 
         conn.commit()
         conn.close()
+        print(f"✅ Database initialized at {LOCAL_DB}")
 
-    with app.app_context():
-        init_db()
+    # ==============================================================
+    # 💾 Backup System (Weekly)
+    # ==============================================================
+    def backup_db():
+        """Create timestamped .bak copy of the database."""
+        if os.path.exists(LOCAL_DB):
+            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            backup_name = os.path.join(BACKUP_DIR, f"stencil_{timestamp}.bak")
+            shutil.copy2(LOCAL_DB, backup_name)
+            print(f"🗄 Backup created at {backup_name}")
+
+    def weekly_backup_job():
+        """Background job that runs every week."""
+        while True:
+            backup_db()
+            time.sleep(7 * 24 * 60 * 60)  # 7 days
+
+    def start_backup_thread():
+        t = threading.Thread(target=weekly_backup_job, daemon=True)
+        t.start()
+        print("🕒 Weekly backup thread started")
+
+    # Initialize DB & start backup system
+    os.makedirs(BASE_DIR, exist_ok=True)
+    init_db()
+    start_backup_thread()
+
+    # ==============================================================
+    # ⚙️ Existing App Logic
+    # ==============================================================
+    app.config["DATABASE"] = LOCAL_DB
+    app.get_db = get_db
 
     # ---------------- Utilities ----------------
     SHORT_FIELDS = ["fg","customer","pallet_no","pallet_qty","rack_no","location"]
@@ -581,7 +624,7 @@ def create_app():
         rows = [dict(r) for r in cur.fetchall()]
         conn.close()
         return jsonify(rows)
-
+    # ✅ Copy all the route definitions exactly as they are from your current file.
     return app
 
 # ---- Create and run ----
